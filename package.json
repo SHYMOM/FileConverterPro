@@ -1,0 +1,55 @@
+{
+  "name": "converttopdf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.14.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "sharp": "^0.34.5"
+  },
+  "build": {
+    "appId": "com.antigravity.pdfconverter",
+    "productName": "PDF Converter Pro",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "publish": null
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false
+    },
+    "electronDownload": {
+      "platform": "win32",
+      "arch": "x64"
+    }
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^41.5.0",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "vite": "^8.0.10"
+  }
+}
