@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { FileUp, FileText, X, Settings, ArrowRight, CheckCircle2, Loader2, Files } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
+
+// Set worker path for pdfjs
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 export default function App() {
   const [files, setFiles] = useState([])
@@ -10,6 +15,7 @@ export default function App() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('')
   const [resultSummary, setResultSummary] = useState(null)
+  const [targetFormat, setTargetFormat] = useState('PDF') // 'PDF' or 'PPTX'
 
   useEffect(() => {
     if (window.electron) {
@@ -42,6 +48,28 @@ export default function App() {
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  const convertPdfToImages = async (pdfPath) => {
+    const loadingTask = pdfjsLib.getDocument(pdfPath)
+    const pdf = await loadingTask.promise
+    const images = []
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const viewport = page.getViewport({ scale: 2.0 }) // Higher scale for better quality
+      
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      canvas.height = viewport.height
+      canvas.width = viewport.width
+      
+      await page.render({ canvasContext: context, viewport }).promise
+      images.push(canvas.toDataURL('image/png'))
+      setProgress((i / pdf.numPages) * 100)
+    }
+    
+    return images
+  }
+
   const handleConvert = async () => {
     if (files.length === 0) return
 
@@ -50,23 +78,66 @@ export default function App() {
     setStatus('Starting conversion...')
     setResultSummary(null)
 
-    const result = await window.electron.convertFiles(
-      files.map(f => f.path),
-      { mergeIntoOne: isMerging, outputPath }
-    )
+    try {
+      if (targetFormat === 'PPTX') {
+        let totalProcessed = 0
+        const pdfFiles = files.filter(f => f.type === 'PDF')
+        
+        if (pdfFiles.length === 0) {
+          throw new Error('No PDF files selected for PPTX conversion')
+        }
 
-    setIsConverting(false)
-    if (result.success || (result.count > 0)) {
-      setStatus(result.failedCount > 0 ? 'Completed with some errors' : 'Conversion complete!')
-      setResultSummary({
-        successCount: result.count,
-        failedCount: result.failedCount,
-        errors: result.errors,
-        targetDir: result.targetDir
-      })
-      if (result.failedCount === 0) setFiles([])
-    } else {
-      setStatus(`Error: ${result.error || 'Conversion failed'}`)
+        for (const file of pdfFiles) {
+          setStatus(`Rendering PDF: ${file.name}...`)
+          const images = await convertPdfToImages(file.path)
+          
+          setStatus(`Generating PPTX for ${file.name}...`)
+          const fileName = file.name.replace(/\.[^/.]+$/, "")
+          const targetDir = outputPath || file.path.split(/[\\/]/).slice(0, -1).join('/') + '/Converted PPTX'
+          
+          const result = await window.electron.convertToPptx(images, {
+            outputPath: targetDir,
+            fileName: fileName
+          })
+          
+          if (result.success) {
+            totalProcessed++
+          }
+        }
+        
+        setStatus('Conversion complete!')
+        setResultSummary({
+          successCount: totalProcessed,
+          failedCount: pdfFiles.length - totalProcessed,
+          errors: [],
+          targetDir: outputPath || 'Converted PPTX folder'
+        })
+        if (totalProcessed === pdfFiles.length) setFiles([])
+      } else {
+        // Original PDF conversion logic
+        const result = await window.electron.convertFiles(
+          files.map(f => f.path),
+          { mergeIntoOne: isMerging, outputPath }
+        )
+
+        if (result.success || (result.count > 0)) {
+          setStatus(result.failedCount > 0 ? 'Completed with some errors' : 'Conversion complete!')
+          setResultSummary({
+            successCount: result.count,
+            failedCount: result.failedCount,
+            errors: result.errors,
+            targetDir: result.targetDir
+          })
+          if (result.failedCount === 0) setFiles([])
+        } else {
+          throw new Error(result.error || 'Conversion failed')
+        }
+      }
+    } catch (err) {
+      console.error(err)
+      setStatus(`Error: ${err.message}`)
+    } finally {
+      setIsConverting(false)
     }
   }
 
@@ -138,26 +209,44 @@ export default function App() {
               <Settings size={20} /> Settings
             </h3>
             
-            <div className="options-group">
-              <div className="option-item" onClick={() => setIsMerging(!isMerging)}>
-                <div className={`toggle ${isMerging ? 'active' : ''}`}></div>
-                <div>
-                  <div style={{ fontWeight: 500 }}>Merge into one PDF</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Combine all files into a single document
-                  </div>
+              <div className="output-path-selector">
+                <div style={{ fontWeight: 500, marginBottom: '8px', fontSize: '0.9rem' }}>Target Format</div>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                  <button 
+                    className={`format-btn ${targetFormat === 'PDF' ? 'active' : ''}`}
+                    onClick={() => setTargetFormat('PDF')}
+                  >
+                    PDF
+                  </button>
+                  <button 
+                    className={`format-btn ${targetFormat === 'PPTX' ? 'active' : ''}`}
+                    onClick={() => setTargetFormat('PPTX')}
+                  >
+                    PPTX
+                  </button>
                 </div>
               </div>
+
+              {targetFormat === 'PDF' && (
+                <div className="option-item" onClick={() => setIsMerging(!isMerging)}>
+                  <div className={`toggle ${isMerging ? 'active' : ''}`}></div>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>Merge into one PDF</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Combine all files into a single document
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="output-path-selector">
                 <div style={{ fontWeight: 500, marginBottom: '8px', fontSize: '0.9rem' }}>Output Location</div>
                 <div className="path-display" onClick={handleSelectOutputPath}>
-                  <span className="path-text">{outputPath || 'Default: "Converted PDF" folder'}</span>
+                  <span className="path-text">{outputPath || `Default: "Converted ${targetFormat}" folder`}</span>
                   <Settings size={14} style={{ opacity: 0.5 }} />
                 </div>
               </div>
             </div>
-          </div>
 
           <AnimatePresence>
             {resultSummary && (

@@ -298,3 +298,27 @@ body {
   background: rgba(16, 185, 129, 0.05);
   border-color: rgba(16, 185, 129, 0.1);
 }
+
+.format-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.format-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.format-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}

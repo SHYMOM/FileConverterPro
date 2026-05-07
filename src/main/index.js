@@ -3,6 +3,7 @@ import { join } from 'path'
 import fs from 'fs'
 import { PDFDocument } from 'pdf-lib'
 import sharp from 'sharp'
+import PptxGenJS from 'pptxgenjs'
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -198,6 +199,38 @@ ipcMain.handle('convert-files', async (event, files, options) => {
     }
   } catch (error) {
     console.error('Conversion Error:', error)
+    return { success: false, error: error.message }
+  }
+})
+ipcMain.handle('convert-to-pptx', async (event, images, options) => {
+  try {
+    const { outputPath, fileName } = options
+    const pptx = new PptxGenJS()
+    
+    for (const imgBase64 of images) {
+      const slide = pptx.addSlide()
+      // images is an array of base64 strings (with or without data:image/png;base64, prefix)
+      slide.addImage({ 
+        data: imgBase64, 
+        x: 0, 
+        y: 0, 
+        w: '100%', 
+        h: '100%' 
+      })
+    }
+
+    const finalPath = join(outputPath, fileName + '.pptx')
+    if (!fs.existsSync(outputPath)) {
+      fs.mkdirSync(outputPath, { recursive: true })
+    }
+
+    const buffer = await pptx.write('nodebuffer')
+    fs.writeFileSync(finalPath, buffer)
+    
+    shell.showItemInFolder(finalPath)
+    return { success: true, path: finalPath }
+  } catch (error) {
+    console.error('PPTX Generation Error:', error)
     return { success: false, error: error.message }
   }
 })
