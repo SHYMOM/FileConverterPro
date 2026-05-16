@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('electron', {
   selectOutputDirectory: () => ipcRenderer.invoke('select-output-directory'),
   convertFiles: (files, options) => ipcRenderer.invoke('convert-files', files, options),
   convertToPptx: (images, options) => ipcRenderer.invoke('convert-to-pptx', images, options),
+  convertToDocx: (filePath, options) => ipcRenderer.invoke('convert-to-docx', filePath, options),
   onProgress: (callback) => ipcRenderer.on('conversion-progress', (_event, value) => callback(value))
 })

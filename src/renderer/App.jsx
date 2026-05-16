@@ -79,7 +79,38 @@ export default function App() {
     setResultSummary(null)
 
     try {
-      if (targetFormat === 'PPTX') {
+      if (targetFormat === 'DOCX') {
+        let totalProcessed = 0
+        const pdfFiles = files.filter(f => f.type === 'PDF')
+        
+        if (pdfFiles.length === 0) {
+          throw new Error('No PDF files selected for DOCX conversion')
+        }
+
+        for (const file of pdfFiles) {
+          setStatus(`Converting PDF to Word: ${file.name}...`)
+          const targetDir = outputPath || file.path.split(/[\\/]/).slice(0, -1).join('/') + '/Converted DOCX'
+          
+          const result = await window.electron.convertToDocx(file.path, {
+            outputPath: targetDir
+          })
+          
+          if (result.success) {
+            totalProcessed++
+          } else {
+            throw new Error(result.error || 'Conversion failed')
+          }
+        }
+        
+        setStatus('Conversion complete!')
+        setResultSummary({
+          successCount: totalProcessed,
+          failedCount: pdfFiles.length - totalProcessed,
+          errors: [],
+          targetDir: outputPath || 'Converted DOCX folder'
+        })
+        if (totalProcessed === pdfFiles.length) setFiles([])
+      } else if (targetFormat === 'PPTX') {
         let totalProcessed = 0
         const pdfFiles = files.filter(f => f.type === 'PDF')
         
@@ -223,6 +254,12 @@ export default function App() {
                     onClick={() => setTargetFormat('PPTX')}
                   >
                     PPTX
+                  </button>
+                  <button 
+                    className={`format-btn ${targetFormat === 'DOCX' ? 'active' : ''}`}
+                    onClick={() => setTargetFormat('DOCX')}
+                  >
+                    DOCX
                   </button>
                 </div>
               </div>

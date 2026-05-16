@@ -234,3 +234,38 @@ ipcMain.handle('convert-to-pptx', async (event, images, options) => {
     return { success: false, error: error.message }
   }
 })
+
+ipcMain.handle('convert-to-docx', async (event, filePath, options) => {
+  try {
+    const { outputPath } = options
+    const fileName = filePath.split(/[\\/]/).pop().replace(/\.[^/.]+$/, "") + ".docx"
+    const finalPath = join(outputPath, fileName)
+
+    if (!fs.existsSync(outputPath)) {
+      fs.mkdirSync(outputPath, { recursive: true })
+    }
+
+    const { execSync } = await import('child_process')
+    const pythonScript = join(app.getAppPath(), 'src/main/pdf_to_docx_advanced.py')
+    
+    // Check if python is available
+    try {
+      execSync('python --version')
+    } catch (e) {
+      throw new Error('Python is required for advanced Word conversion. Please install Python.')
+    }
+
+    const command = `python "${pythonScript}" "${filePath}" "${finalPath}"`
+    const output = execSync(command).toString()
+
+    if (output.includes('CONVERSION_SUCCESS') && fs.existsSync(finalPath)) {
+      shell.showItemInFolder(finalPath)
+      return { success: true, path: finalPath }
+    } else {
+      throw new Error(output || 'Advanced conversion failed')
+    }
+  } catch (error) {
+    console.error('DOCX Generation Error:', error)
+    return { success: false, error: error.message }
+  }
+})
