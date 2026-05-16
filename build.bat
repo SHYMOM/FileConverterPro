@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   PDF Converter Pro - Build Script
+echo   File Converter Pro - Build Script
 echo ========================================
 
 echo.

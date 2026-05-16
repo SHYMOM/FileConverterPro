@@ -15,18 +15,30 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "csv-parse": "^6.2.1",
     "framer-motion": "^12.38.0",
+    "highlight.js": "^11.11.1",
+    "jsonexport": "^3.2.0",
+    "katex": "^0.16.47",
+    "libreoffice-convert": "^1.8.1",
     "lucide-react": "^1.14.0",
+    "markdown-it": "^14.1.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.7.284",
     "pptxgenjs": "^4.0.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "sharp": "^0.34.5"
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "sharp": "^0.34.5",
+    "xlsx": "^0.18.5"
   },
   "build": {
-    "appId": "com.antigravity.pdfconverter",
-    "productName": "PDF Converter Pro",
+    "appId": "com.antigravity.fileconverter",
+    "productName": "File Converter Pro",
     "directories": {
       "output": "dist"
     },
